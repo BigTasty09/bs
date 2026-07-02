@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Happy Birthday! 🎉</title>
+  
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght=0,600;0,700;1,400&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    
+    html {
+      scroll-behavior: smooth;
+    }
+
+    /* Custom Minimalist Theme Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(128, 10, 32, 0.1);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #a31d3b;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #cd3254;
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(-45deg, #a31d3b, #cd3254, #800a20, #e64a6c);
+      background-size: 400% 400%;
+      animation: glimmering 10s ease infinite;
+      min-height: 100vh;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow-y: auto;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    @keyframes glimmering {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .bg-decor {
+      position: absolute;
+      font-size: 24px;
+      bottom: -50px;
+      opacity: 0;
+      pointer-events: none;
+      animation: floatUp 8s linear infinite;
+    }
+
+    @keyframes floatUp {
+      0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+      10% { opacity: 0.4; }
+      90% { opacity: 0.4; }
+      100% { transform: translateY(-105vh) translateX(50px) rotate(360deg); opacity: 0; }
+    }
+
+    .container {
+      text-align: center;
+      padding: 40px 20px; 
+      width: 100%;
+      z-index: 10;
+      position: relative;
+    }
+
+    /* --- COUNTDOWN TIMER SCREEN --- */
+    #countdown-container {
+      margin: 15vh auto 20px auto;
+      max-width: 600px;
+      background: rgba(255, 255, 255, 0.12);
+      padding: 40px 25px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      color: white;
+    }
+
+    .timer-display {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 30px;
+    }
+
+    .timer-block {
+      background: rgba(0, 0, 0, 0.2);
+      padding: 15px 20px;
+      border-radius: 12px;
+      min-width: 90px;
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .timer-num {
+      font-size: 2.5rem;
+      font-weight: bold;
+      font-family: monospace;
+      color: #ffd700;
+    }
+
+    .timer-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.8;
+      margin-top: 5px;
+    }
+
+    /* --- THE GAME SETUP --- */
+    #game-container {
+      margin: 5vh auto 20px auto;
+      max-width: 600px; 
+      background: rgba(255, 255, 255, 0.15);
+      padding: 35px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+
+    #game-board {
+      display: grid;
+      grid-template-columns: repeat(4, 100px);
+      grid-gap: 15px;
+      justify-content: center;
+      margin-top: 25px;
+    }
+
+    .card {
+      width: 100px;
+      height: 100px;
+      background-color: #ffb3c1;
+      border: 3px solid #ff4d6d;
+      border-radius: 12px;
+      font-size: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+      box-shadow: 0 6px 10px rgba(0,0,0,0.15);
+      transition: transform 0.2s ease, background-color 0.3s ease;
+    }
+
+    .card:hover:not(.matched) {
+      transform: scale(1.05);
+    }
+
+    .card.hidden {
+      background-color: #a31d3b;
+      border-color: #e64a6c;
+      color: transparent;
+    }
+
+    .card.matched {
+      background-color: rgba(255, 255, 255, 0.8);
+      border-color: #38b000;
+      cursor: default;
+      transform: scale(0.95);
+    }
+
+    /* --- THE GIFT BOX --- */
+    .gift-container {
+      display: inline-block;
+      text-align: center;
+      margin-top: 5vh;
+    }
+    
+    .gift-container.unlocked {
+      cursor: pointer;
+    }
+    
+    .gift-box {
+      font-size: 130px; 
+      transition: transform 0.3s ease;
+    }
+
+    .gift-container.unlocked:hover .gift-box {
+      transform: scale(1.05) rotate(-2deg);
+    }
+
+    .gift-box.bouncing {
+      animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-20px); }
+      60% { transform: translateY(-10px); }
+    }
+
+    /* --- THE SURPRISE CARD --- */
+    .surprise-card {
+      display: none;
+      background: rgba(255, 255, 255, 0.97);
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      max-width: 550px;
+      width: 90%;
+      margin: 10vh auto 0 auto; 
+      text-align: left;
+      font-family: 'Playfair Display', Georgia, serif;
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(5px);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), box-shadow 0.4s ease;
+    }
+
+    .surprise-card.reveal {
+      display: block !important;
+    }
+
+    .surprise-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 20px 40px rgba(130, 10, 32, 0.4);
+    }
+
+    .heading-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .heading-char {
+      opacity: 0;
+      display: inline-block;
+      color: #4A0010;
+      font-size: 2.2rem;
+      font-weight: 1000;
+      letter-spacing: -0.5px;
+      animation: revealLetter 0.1s forwards;
+    }
+
+    .popper-img {
+      width: 60px;
+      height: 60px;
+      object-fit: contain;
+      opacity: 0;
+      animation: revealLetter 0.5s forwards;
+    }
+
+    .surprise-card p {
+      color: #2c3e50;
+      font-size: 1.25rem;
+      line-height: 1.8;
+      font-style: italic;
+      margin: 0 0 2rem 0; 
+      white-space: normal; 
+      word-wrap: break-word;
+    }
+
+    .char {
+      opacity: 0;
+      display: inline; 
+      animation: revealLetter 0.05s forwards;
+    }
+
+    @keyframes revealLetter {
+      to { opacity: 1; }
+    }
+
+    .highlight {
+      color: #cd3254; 
+      font-weight: 700;
+      font-style: normal;
+      display: inline;
+    }
+
+    .paragraph-spacer {
+      display: block;
+      height: 1.5rem;
+    }
+
+    .hide {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="bgDecorations"></div>
+
+  <div class="container">
+    
+    <!-- STAGE 0: THE TIMER BLOCK -->
+    <div id="countdown-container">
+      <h2 style="margin: 0; font-size: 1.8rem; text-shadow: 1px 1px 4px rgba(0,0,0,0.3);">
+        🎁
+      </h2>
+      <p style="color: #ffb3c1; font-weight: bold; margin-top: 10px; font-size: 1.1rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">
+        Secret is loading! Come back when you're older!
+      </p>
+      
+      <div class="timer-display">
+        <div class="timer-block"><div class="timer-num" id="days">00</div><div class="timer-label">Days</div></div>
+        <div class="timer-block"><div class="timer-num" id="hours">00</div><div class="timer-label">Hrs</div></div>
+        <div class="timer-block"><div class="timer-num" id="minutes">00</div><div class="timer-label">Min</div></div>
+        <div class="timer-block"><div class="timer-num" id="seconds">00</div><div class="timer-label">Sec</div></div>
+      </div>
+    </div>
+    
+    <!-- STAGE 1: THE GAME COMPONENT -->
+    <div id="game-container" class="hide">
+      <h2 style="color: white; margin: 0; font-size: 1.5rem; text-shadow: 1px 1px 4px rgba(0,0,0,0.3);">
+        Let's play a game...
+      </h2>
+      <div id="game-board"></div>
+    </div>
+
+    <!-- STAGE 2: CENTRAL INTERACTIVE BOX CONTEXT -->
+    <div class="gift-container hide" id="giftSection">
+      <div class="gift-box bouncing" id="giftBoxEmoji">🎁</div>
+      <p id="giftStatusText" style="color: white; font-weight: bold; font-size: 1.3rem; text-shadow: 1px 1px 6px rgba(0,0,0,0.5); margin-top: 15px;">
+        Surprise is Locked!
+      </p>
+    </div>
+
+    <!-- STAGE 3: THE SECRET LETTER -->
+    <div class="surprise-card" id="surpriseCard">
+      <div class="heading-wrapper">
+        <img class="popper-img" id="leftPopper" src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f382/512.webp" alt="🎂">
+        <h1 id="typewriterHeading" style="margin: 0;"></h1>
+        <img class="popper-img" id="rightPopper" src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f382/512.webp" alt="🎂">
+      </div>
+      <div id="textContainer"></div>
+    </div>
+  </div>
+
+  <script>
+    // LOCKED TARGET TIME: July 8, 2026 at Midnight
+    const targetDate = new Date("July 8, 2026 00:00:00").getTime();
+    
+    const timerInterval = setInterval(() => {
+      const now = new Date().getTime();
+      const difference = targetDate - now;
+
+      if (difference <= 0) {
+        clearInterval(timerInterval);
+        document.getElementById('countdown-container').classList.add('hide');
+        document.getElementById('game-container').classList.remove('hide');
+        document.getElementById('giftSection').classList.remove('hide');
+      } else {
+        const d = Math.floor(difference / (1000 * 60 * 60 * 24));
+        const h = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const m = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+        const s = Math.floor((difference % (1000 * 60)) / 1000);
+
+        document.getElementById('days').innerText = String(d).padStart(2, '0');
+        document.getElementById('hours').innerText = String(h).padStart(2, '0');
+        document.getElementById('minutes').innerText = String(m).padStart(2, '0');
+        document.getElementById('seconds').innerText = String(s).padStart(2, '0');
+      }
+    }, 1000);
+
+    const headingText = "! Happy Birthday !";
+    const messageParagraphs = [
+      "Hi Sicily",
+      "Today is about you!",
+      "I want you to have a wonderful day, filled with all the things that make you feel happy and loved!",
+      "You deserve it.",
+      "I feel like you don't hear that enough! Sometimes, even YOU don't even believe it!",
+      "I wish that one day, you could see yourself the way I see you, and the way so many other people do too.",
+      "I mean hell, some people notice how dazzling you are that they get jealous or mean because of it.",
+      "But that's just because they're simply nowhere near as cool as you. I just get jealous in an admire-y sort of way.",
+      "There is so much incredible depth underneath that gorgeously cute, and silly exterior.",
+      "I know you can do anything you set your mind to, and I hope this year is the start of a beautiful new chapter for you.",
+      "", 
+      "I really hope you liked this little surprise I built for you.",
+      "I had a lot of fun making it, and it felt nice to make something for you.",
+      "I hope it makes you smile too. :)",
+      "Happy Birthday!!!💘",
+    ];
+
+    // --- MEMORY GAME CORE LOGIC ---
+    const board = document.getElementById('game-board');
+    const gameEmojis = ['🎂', '🎂', '🎁', '🎁', '🎈', '🎈', '🥳', '🥳'];
+    gameEmojis.sort(() => Math.random() - 0.5);
+
+    let flippedCards = [];
+    let matchedCount = 0;
+
+    gameEmojis.forEach((emoji) => {
+        const card = document.createElement('div');
+        card.classList.add('card', 'hidden');
+        card.dataset.emoji = emoji;
+        card.innerText = emoji;
+        card.addEventListener('click', () => flipCard(card));
+        board.appendChild(card);
+    });
+
+    function flipCard(card) {
+        if (!card.classList.contains('hidden') || flippedCards.length >= 2) return;
+
+        card.classList.remove('hidden');
+        flippedCards.push(card);
+
+        if (flippedCards.length === 2) {
+            const [card1, card2] = flippedCards;
+
+            if (card1.dataset.emoji === card2.dataset.emoji) {
+                card1.classList.add('matched');
+                card2.classList.add('matched');
+                flippedCards = [];
+                matchedCount += 2;
+
+                if (matchedCount === gameEmojis.length) {
+                    setTimeout(() => {
+                        document.getElementById('game-container').classList.add('hide');
+                        const giftContainer = document.getElementById('giftSection');
+                        const statusText = document.getElementById('giftStatusText');
+                        
+                        statusText.innerText = "YOU WIN! \nClick to open your surprise!";
+                        statusText.style.color = "#ffd700";
+                        statusText.style.whiteSpace = "pre-line";
+                        document.getElementById('giftBoxEmoji').innerText = "🔓";
+                        
+                        giftContainer.classList.add('unlocked');
+                        giftContainer.setAttribute('onclick', 'revealSurprise()');
+                    }, 400);
+                }
+            } else {
+                setTimeout(() => {
+                    card1.classList.add('hidden');
+                    card2.classList.add('hidden');
+                    flippedCards = [];
+                }, 800);
+            }
+        }
+    }
+
+    // --- REVEAL EXTENSION ---
+    function revealSurprise() {
+      document.getElementById('giftSection').classList.add('hide');
+      document.getElementById('surpriseCard').classList.add('reveal');
+      
+      triggerConfetti();
+      createAmbientFloatingElements(); 
+      buildAnimatedText();
+    }
+
+    function buildAnimatedText() {
+      const headingContainer = document.getElementById("typewriterHeading");
+      const textContainer = document.getElementById("textContainer");
+      let runningDelay = 0;
+
+      let headingHTML = "";
+      for (let i = 0; i < headingText.length; i++) {
+        const charToRender = headingText[i] === " " ? "&nbsp;" : headingText[i];
+        headingHTML += `<span class="heading-char" style="animation-delay: ${runningDelay}s">${charToRender}</span>`;
+        runningDelay += 0.05;
+      }
+      headingContainer.innerHTML = headingHTML;
+
+      document.getElementById("leftPopper").style.animationDelay = "0s";
+      document.getElementById("rightPopper").style.animationDelay = `${runningDelay}s`;
+
+      runningDelay += 2.0; 
+
+      messageParagraphs.forEach((paragraphText) => {
+        if (paragraphText.trim() === "") {
+          const spacer = document.createElement("div");
+          spacer.className = "paragraph-spacer";
+          textContainer.appendChild(spacer);
+          runningDelay += 1.5; 
+          return;
+        }
+
+        const pElement = document.createElement("p");
+        pElement.innerHTML = paragraphText;
+        processNodes(pElement);
+
+        function processNodes(node) {
+          const childNodes = Array.from(node.childNodes);
+          childNodes.forEach((child) => {
+            if (child.nodeType === Node.TEXT_NODE) {
+              const text = child.nodeValue;
+              const fragment = document.createDocumentFragment();
+              
+              for (let i = 0; i < text.length; i++) {
+                const span = document.createElement("span");
+                span.className = "char";
+                span.style.animationDelay = `${runningDelay}s`;
+                span.textContent = text[i];
+                fragment.appendChild(span);
+                runningDelay += 0.04; 
+              }
+              child.parentNode.replaceChild(fragment, child);
+            } else if (child.nodeType === Node.ELEMENT_NODE) {
+              processNodes(child); 
+            }
+          });
+        }
+
+        textContainer.appendChild(pElement);
+        runningDelay += 1.2; 
+      });
+
+      setTimeout(triggerHearts, runningDelay * 1000);
+    }
+
+    function createAmbientFloatingElements() {
+      const container = document.getElementById('bgDecorations');
+      const items = ['✨', '💘', '🎈', '✨'];
+      
+      setInterval(() => {
+        const decor = document.createElement('div');
+        decor.className = 'bg-decor';
+        decor.innerText = items[Math.floor(Math.random() * items.length)];
+        decor.style.left = Math.random() * 100 + 'vw';
+        decor.style.animationDuration = (Math.random() * 4 + 6) + 's'; 
+        decor.style.fontSize = (Math.random() * 15 + 15) + 'px';
+        container.appendChild(decor);
+        setTimeout(() => { decor.remove(); }, 8000);
+      }, 600); 
+    }
+
+    function triggerConfetti() {
+      const duration = 4 * 1000;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 1000 };
+
+      function randomInRange(min, max) {
+        return Math.random() * (max - min) + min;
+      }
+
+      const interval = setInterval(function() {
+        const timeLeft = animationEnd - Date.now();
+        if (timeLeft <= 0) return clearInterval(interval);
+
+        const particleCount = 50 * (timeLeft / duration);
+        const luxuryColors = ['#ffd700', '#FF69B4', '#cd3254', '#800a20', '#ffffff'];
+
+        confetti(Object.assign({}, defaults, { 
+          particleCount, 
+          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+          colors: luxuryColors
+        }));
+        
+        confetti(Object.assign({}, defaults, { 
+          particleCount, 
+          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+          colors: luxuryColors
+        }));
+      }, 250);
+    }
+
+    function triggerHearts() {
+      const defaults = {
+        spread: 360,
+        ticks: 100,
+        gravity: 0.8,
+        decay: 0.94,
+        startVelocity: 30,
+        shapes: ['heart'],
+        colors: ['#FFC0CB', '#FF69B4', '#FF1493', '#C71585', '#E64A6C']
+      };
+      confetti({ ...defaults, particleCount: 40, scalar: 2, origin: { x: 0.3, y: 0.6 } });
+      confetti({ ...defaults, particleCount: 40, scalar: 2, origin: { x: 0.7, y: 0.6 } });
+    }
+  </script>
+</body>
+</html>
